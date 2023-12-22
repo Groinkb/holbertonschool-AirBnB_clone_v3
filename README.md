@@ -67,6 +67,7 @@ At the end of this project, you are expected to be able to <a href="https://fs.b
 # More Info
 
 ![API SCHEME](/images/api.png)
+
 [![REST API](https://img.youtube.com/vi/oB7IvffO7JI.jpg)](https://youtu.be/oB7IvffO7JI)
 
 ## Install Flask

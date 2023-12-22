@@ -1,73 +1,67 @@
 #!/usr/bin/python3
-"""
-Creates a new view for State objects for all default API actions
-"""
-from flask import request, jsonify, abort
+""" States API Calls module"""
 
 from api.v1.views import app_views
+from flask import jsonify, abort, make_response, request
 from models import storage
 from models.state import State
 
 
-def getstate(state):
-    """Get state"""
-    if state is None:
-        abort(404)
-    return (jsonify(state.to_dict()), 200)
+@app_views.route('/states', methods=["GET"], strict_slashes=False)
+def state_getter():
+    """ List all of objects of class State """
+    list_states = [state.to_dict() for state in storage.all(State).values()]
+    return jsonify(list_states)
 
 
-def putstate(state):
-    """ Update state"""
-    if state is None:
+@app_views.route('/states/<id>', methods=["GET"], strict_slashes=False)
+def specific_state_getter(id):
+    """Retrieves the data of a specific state from the given ID"""
+    specific_state = storage.get(State, id)
+    if specific_state is None:
         abort(404)
-    if not request.is_json:
-        abort(400, 'Not a JSON')
-    new = request.get_json()
-    for (k, v) in new.items():
-        if k is not 'id' and k is not 'created_at' and k is not 'updated_at':
-            setattr(state, k, v)
+    return jsonify(specific_state.to_dict())
+
+
+@app_views.route('/states/<id>', methods=["DELETE"], strict_slashes=False)
+def delete_state(id):
+    """ Deletes a specific State object with the given ID, returns 404 error
+    if id does not exist, else returns 200"""
+    specific_state = storage.get(State, id)
+    if specific_state is None:
+        abort(404)
+    storage.delete(specific_state)
     storage.save()
-    return (jsonify(state.to_dict()), 200)
+    return make_response(jsonify({}), 200)
 
 
-def deletestate(state):
-    """Delete state"""
-    if state is None:
+@app_views.route('/states/', methods=["POST"], strict_slashes=False)
+def create_state():
+    """Create a new state via post using a JSON input, 400 error if not json
+     or if dictionary does not contain name"""
+    get_dict = request.get_json(silent=True)
+    if get_dict is None:
+        return make_response(jsonify({"error": "Not a JSON"}), 400)
+    if "name" not in get_dict.keys() or get_dict["name"] is None:
+        return make_response(jsonify({"error": "Missing name"}), 400)
+    new_state = State(**get_dict)
+    new_state.save()
+    return make_response(jsonify(new_state.to_dict()), 201)
+
+
+@app_views.route("states/<id>", methods=["PUT"], strict_slashes=False)
+def update_state(id):
+    """ Updates a specific State object"""
+    get_dict = request.get_json(silent=True)
+    if get_dict is None:
+        return make_response(jsonify({"error": "Not a JSON"}), 400)
+    specific_state = storage.get(State, id)
+    if specific_state is None:
         abort(404)
-    storage.delete(state)
+    ignore_list = ["id", "created_at", "updated_at"]
+    for key, value in get_dict.items():
+        if key in ignore_list:
+            continue
+        setattr(specific_state, key, value)
     storage.save()
-    return (jsonify({}), 200)
-
-
-@app_views.route('/states', methods=['GET', 'POST'])
-def states():
-    """  Retrieves list of all state objs or creates a state"""
-    if request.method == 'GET':
-        all_states = [x.to_dict() for x in storage.all('State').values()]
-        return (jsonify(all_states), 200)
-    elif request.method == 'POST':
-        if not request.is_json:
-            abort(400, 'Not a JSON')
-        new = request.get_json()
-        if 'name' not in new.keys():
-            abort(400, 'Missing name')
-        x = State()
-        for (k, v) in new.items():
-            setattr(x, k, v)
-        x.save()
-        return (jsonify(x.to_dict()), 201)
-
-
-@app_views.route('/states/<ident>', methods=['GET', 'PUT', 'DELETE'])
-def states_id(ident):
-    """Retrieves a specific state"""
-    states = storage.all('State')
-    for s in states.values():
-        if s.id == ident:
-            if request.method == 'GET':
-                return getstate(s)
-            elif request.method == 'PUT':
-                return putstate(s)
-            elif request.method == 'DELETE':
-                return deletestate(s)
-    abort(404, 'Not found')
+    return make_response(jsonify(specific_state.to_dict()), 200)

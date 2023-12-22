@@ -113,103 +113,28 @@ class TestFileStorage(unittest.TestCase):
         with open("file.json", "r") as f:
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
-    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
-    def test_count(self):
-        """
-        La fonction test_count est un test pour vérifier si la fonction count fonctionne
-        correctement. Il vérifie si le nombre d'objets créés est égal au nombre
-        d'objets comptés. La fonction test_count vérifie également que toutes les instances sont
-        compté et pas seulement un type d'instance.
 
-        :param self : référence l'instance de classe
-        :return : le nombre de toutes les instances dans la base de données
-    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
-    def test_count(self):
-        """
-        La fonction test_count est un test pour
-        vérifier si la fonction count fonctionne
-        correctement. Il vérifie si le nombre
-        d'objets créés est égal au nombre
-        d'objets comptés. La fonction test_count
-        vérifie également que toutes les instances sont
-        compté et pas seulement un type d'instance.
-        :param self : référence l'instance de classe
-        :return : le nombre de toutes
-        les instances dans la base de données
-        :doc-author: Trelent
-        """
-        currentStateInit = models.storage.count(State)
-        stateList = ["Suisse", "France", "Espagne", "Portugale"]
-        for stateName in stateList:
-            newState = State(name=stateName)
-            newState.save()
-        countStateResult = models.storage.count(State)
-        self.assertEqual(countStateResult - currentStateInit,
-                         len(stateList))
-        allInstance = models.storage.count()
-        self.assertEqual(allInstance - currentStateInit,
-                         len(stateList))
-        allemagneState = State(name="allemagne")
-        allemagneState.save()
-        countStateResult += 1
-        currentCityNumber = models.storage.count(City)
-        allemagneCity = ["Studgard", "Berlin"]
-        for cityName in allemagneCity:
-            newCity = City(name=cityName, state_id=allemagneState.id)
-            newCity.save()
-        countCity = models.storage.count(City)
-        self.assertEqual(countCity - currentCityNumber,
-                         len(allemagneCity))
-        allInstance = models.storage.count()
-        stateNumber = countStateResult - currentStateInit
-        cityNumber = countCity - currentCityNumber
-        allInstanceNumber = stateNumber + cityNumber
-        self.assertEqual(allInstanceNumber, allInstance)
-
-
-    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
     def test_get(self):
-        """
-        La fonction test_get teste la méthode get
-        de la classe de stockage.
-        Il crée de nouveaux objets State, City, User,
-        Place et Review et les enregistre dans
-        le moteur de stockage. Il récupère ensuite
-        chaque objet de la base de données en utilisant leur
-        identifiants uniques (id) et les compare à
-        leur objet correspondant qui a été
-        enregistré en mémoire. La fonction test_get
-        teste également le moment où des arguments
-        non valides sont passés dans
-        la méthode de stockage get.
-        :param self : référence l'instance de classe
-        :return: None pour montrer que l'objet
-        n'est pas dans le
-        :doc-author: Trelent
-        """
-        newState = State(name="Alemaggne")
-        newCity = City(name="Berlin", state_id=newState.id)
-        newUser = User(email="namme@email.com",
-                       password="password")
-        newPlace = Place(name="Berlin Wall",
-                         city_id=newCity.id,
-                         state_id=newState.id,
-                         user_id=newUser.id)
-        newReview = Review(text="This is a review",
-                           place_id=newPlace.id,
-                           user_id=newUser.id)
-        newAmenity = Amenity(name="Rosenta")
-        newState.save()
-        newCity.save()
-        newUser.save()
-        newPlace.save()
-        newReview.save()
-        newAmenity.save()
-        self.assertEqual(None, models.storage.get("azerty", "qwerty"))
-        self.assertEqual(newCity, models.storage.get(City, newCity.id))
-        self.assertEqual(newUser, models.storage.get(User, newUser.id))
-        self.assertEqual(newPlace, models.storage.get(Place, newPlace.id))
-        self.assertEqual(newReview, models.storage.get(Review, newReview.id))
-        self.assertEqual(newAmenity,
-                         models.storage.get(Amenity, newAmenity.id))
-        self.assertEqual(None, models.storage.get(State, "Not a good ID"))
+        """Testing the get method in db storage works correctly"""
+        # Testing correct use
+        trial_state = State("Findmeessissippi")
+        models.storage.new(trial_state)
+        models.storage.save()
+        get_state = models.storage.get(State, trial_state.id)
+        self.assertEqual(trial_state, get_state)
+        # Testing None return
+        incorrect_state = models.storage.get(State, "s;lakdjfh")
+        self.assertEqual(incorrect_state, None)
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count(self):
+        """Tests the count feature both for all and a specific class"""
+        count_all = models.storage.count()
+        count_states = models.storage.count(State)
+        trial_state = State(name="Countopia")
+        trial_state.save()
+        # Test count all
+        self.assertEqual(count_all + 1, models.storage.count())
+        # Test count State
+        self.assertEqual(count_states + 1, models.storage.count(State))

@@ -3,22 +3,25 @@
 import unittest
 from models.base_model import BaseModel
 from models import storage
+from models.user import User  # Add import for User class
+from models.place import Place  # Add import for Place class
 import os
 
 
-class test_fileStorage(unittest.TestCase):
+class TestFileStorage(unittest.TestCase):  # Rename class for PEP8 compliance
     """ Class to test the file storage method """
+    
     if os.getenv("HBNB_TYPE_STORAGE") != "db":
         def setUp(self):
             """ Set up test environment """
-        del_list = []
-        for key in storage._FileStorage__objects.keys():
-            del_list.append(key)
-        for key in del_list:
-            del storage._FileStorage__objects[key]
+            del_list = []
+            for key in storage._FileStorage__objects.keys():
+                del_list.append(key)
+            for key in del_list:
+                del storage._FileStorage__objects[key]
 
         def tearDown(self):
-            """ Remove storage file at end of tests """
+            """ Remove storage file at the end of tests """
             try:
                 os.remove('file.json')
             except Exception:
@@ -47,7 +50,7 @@ class test_fileStorage(unittest.TestCase):
             self.assertFalse(os.path.exists('file.json'))
 
         def test_empty(self):
-            """ Data is saved to file """
+            """ Data is saved to the file """
             new = BaseModel()
             thing = new.to_dict()
             new.save()
@@ -77,7 +80,7 @@ class test_fileStorage(unittest.TestCase):
                 storage.reload()
 
         def test_reload_from_nonexistent(self):
-            """ Nothing happens if file does not exist """
+            """ Nothing happens if the file does not exist """
             self.assertEqual(storage.reload(), None)
 
         def test_base_model_save(self):
@@ -87,7 +90,7 @@ class test_fileStorage(unittest.TestCase):
             self.assertTrue(os.path.exists('file.json'))
 
         def test_type_path(self):
-            """ Confirm __file_path is string """
+            """ Confirm __file_path is a string """
             self.assertEqual(type(storage._FileStorage__file_path), str)
 
         def test_type_objects(self):
@@ -108,60 +111,60 @@ class test_fileStorage(unittest.TestCase):
             print(type(storage))
             self.assertEqual(type(storage), FileStorage)
 
-    def test_all_with_cls_filter(self):
-        """ __objects is filtered by class """
-        new1 = BaseModel()
-        new2 = User()
-        new3 = Place()
+        def test_all_with_cls_filter(self):
+            """ __objects is filtered by class """
+            new1 = BaseModel()
+            new2 = User()
+            new3 = Place()
 
-        # Filter by BaseModel
-        result = storage.all(BaseModel)
-        self.assertIn(new1, result.values())
-        self.assertNotIn(new2, result.values())
-        self.assertNotIn(new3, result.values())
+            # Filter by BaseModel
+            result = storage.all(BaseModel)
+            self.assertIn(new1, result.values())
+            self.assertNotIn(new2, result.values())
+            self.assertNotIn(new3, result.values())
 
-        # Filter by User
-        result = storage.all(User)
-        self.assertNotIn(new1, result.values())
-        self.assertIn(new2, result.values())
-        self.assertNotIn(new3, result.values())
+            # Filter by User
+            result = storage.all(User)
+            self.assertNotIn(new1, result.values())
+            self.assertIn(new2, result.values())
+            self.assertNotIn(new3, result.values())
 
-        # Filter by Place
-        result = storage.all(Place)
-        self.assertNotIn(new1, result.values())
-        self.assertNotIn(new2, result.values())
-        self.assertIn(new3, result.values())
+            # Filter by Place
+            result = storage.all(Place)
+            self.assertNotIn(new1, result.values())
+            self.assertNotIn(new2, result.values())
+            self.assertIn(new3, result.values())
 
-    def test_new_with_cls_filter(self):
-        """ new adds object to __objects only if it matches the class filter """
-        new1 = BaseModel()
-        new2 = User()
-        new3 = Place()
+        def test_new_with_cls_filter(self):
+            """ new adds object to __objects only if it matches the class filter """
+            new1 = BaseModel()
+            new2 = User()
+            new3 = Place()
 
-        # Add BaseModel object
-        storage.new(new1)
-        self.assertIn(new1, storage.all().values())
+            # Add BaseModel object
+            storage.new(new1)
+            self.assertIn(new1, storage.all().values())
 
-        # Add User object
-        storage.new(new2)
-        self.assertIn(new2, storage.all(User).values())
-        self.assertNotIn(new2, storage.all().values())
+            # Add User object
+            storage.new(new2)
+            self.assertIn(new2, storage.all(User).values())
+            self.assertNotIn(new2, storage.all().values())
 
-        # Add Place object
-        storage.new(new3)
-        self.assertIn(new3, storage.all(Place).values())
-        self.assertNotIn(new3, storage.all().values())
+            # Add Place object
+            storage.new(new3)
+            self.assertIn(new3, storage.all(Place).values())
+            self.assertNotIn(new3, storage.all().values())
 
-    def test_get_count():
-        """Test .get() and .count() methods"""
-        from models import storage
-        from models.state import State
+        def test_get_count(self):
+            """ Test .get() and .count() methods """
+            from models import storage
+            from models.state import State
 
-        print("All objects: {}".format(storage.count()))
-        print("State objects: {}".format(storage.count(State)))
+            print("All objects: {}".format(storage.count()))
+            print("State objects: {}".format(storage.count(State)))
 
-        first_state_id = list(storage.all(State).values())[0].id
-        print("First state: {}".format(storage.get(State, first_state_id)))        
+            first_state_id = list(storage.all(State).values())[0].id
+            print("First state: {}".format(storage.get(State, first_state_id)))        
 
 if __name__ == "__main__":
     unittest.main()

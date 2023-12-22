@@ -12,10 +12,6 @@ This project is to understand what is an API and how use it, it was made in the 
 
 
 <!--------------------------------------------------------------------------------------------------------------------------->
-<details>
-<summary> <strong> 📚Background Context </strong> </summary>
-<br>
-
 # Learning Objectives
 
 At the end of this project, you are expected to be able to <a href="https://fs.blog/feynman-learning-technique/">explain to anyone</a>, **without the help of Google:**
@@ -78,8 +74,6 @@ At the end of this project, you are expected to be able to <a href="https://fs.b
 ```
 $ pip3 install Flask
 ```
-
-</details>
 
 <!--------------------------------------------------------------------------------------------------------------------------->
 

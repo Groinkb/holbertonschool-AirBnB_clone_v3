@@ -1,123 +1,84 @@
 #!/usr/bin/python3
-"""places"""
-from api.v1.views import app_views
-from flask import jsonify, abort, request
+"""Defines the API actions for Place objects"""
+
+from flask import Flask, jsonify, abort, request
 from models import storage
-from models.city import City
 from models.place import Place
-from datetime import datetime
-import uuid
+from models.city import City
+from models.user import User
+from api.v1.views import app_views
 
 
 @app_views.route('/cities/<city_id>/places', methods=['GET'])
-@app_views.route('/cities/<city_id>/places/', methods=['GET'])
-def list_places_of_city(city_id):
-    '''Retrieves a list of all Place objects in city'''
-    all_cities = storage.all("City").values()
-    city_obj = [obj.to_dict() for obj in all_cities if obj.id == city_id]
-    if city_obj == []:
+def get_city_places(city_id):
+    city = storage.get(City, city_id)
+    if city is None:
         abort(404)
-    list_places = [obj.to_dict() for obj in storage.all("Place").values()
-                   if city_id == obj.city_id]
-    return jsonify(list_places)
+
+    places = [place.to_dict() for place in city.places]
+    return jsonify(places)
 
 
-@app_views.route('/places/<place_id>', methods=['GET'])
+@app_views.route('/places/<place_id>', methods=["GET"])
 def get_place(place_id):
-    '''Retrieves a Place object'''
-    all_places = storage.all("Place").values()
-    place_obj = [obj.to_dict() for obj in all_places if obj.id == place_id]
-    if place_obj == []:
+    place = storage.get(Place, place_id)
+    if place is None:
         abort(404)
-    return jsonify(place_obj[0])
+    else:
+        return jsonify(place.to_dict())
 
 
 @app_views.route('/places/<place_id>', methods=['DELETE'])
 def delete_place(place_id):
-    '''Deletes a Place object'''
-    all_places = storage.all("Place").values()
-    place_obj = [obj.to_dict() for obj in all_places
-                 if obj.id == place_id]
-    if place_obj == []:
+    place = storage.get(Place, place_id)
+    if place is None:
         abort(404)
-    place_obj.remove(place_obj[0])
-    for obj in all_places:
-        if obj.id == place_id:
-            storage.delete(obj)
-            storage.save()
+    else:
+        storage.delete(place)
+        storage.save()
+
     return jsonify({}), 200
 
 
-@app_views.route('/cities/<city_id>/places', methods=['POST'])
+@app_views.route('/cities/<city_id>/places', methods=['POST'],
+                 strict_slashes=False)
 def create_place(city_id):
-    '''Creates a Place'''
-    if not request.get_json():
+    city = storage.get(City, city_id)
+    if city is None:
+        abort(404)
+
+    data = request.get_json()
+    if not data:
         abort(400, 'Not a JSON')
-    if 'user_id' not in request.get_json():
+    if 'user_id' not in data:
         abort(400, 'Missing user_id')
-    if 'name' not in request.get_json():
+    user = storage.get(User, data['user_id'])
+    if user is None:
+        abort(404)
+    if 'name' not in data:
         abort(400, 'Missing name')
-    all_cities = storage.all("City").values()
-    city_obj = [obj.to_dict() for obj in all_cities
-                if obj.id == city_id]
-    if city_obj == []:
-        abort(404)
-    places = []
-    new_place = Place(name=request.json['name'],
-                      user_id=request.json['user_id'], city_id=city_id)
-    all_users = storage.all("User").values()
-    user_obj = [obj.to_dict() for obj in all_users
-                if obj.id == new_place.user_id]
-    if user_obj == []:
-        abort(404)
+
+    new_place = Place(city_id=city_id, **data)
     storage.new(new_place)
     storage.save()
-    places.append(new_place.to_dict())
-    return jsonify(places[0]), 201
+
+    return jsonify(new_place.to_dict()), 201
 
 
-@app_views.route('/places/<place_id>', methods=['PUT'])
-def updates_place(place_id):
-    '''Updates a Place object'''
-    all_places = storage.all("Place").values()
-    place_obj = [obj.to_dict() for obj in all_places if obj.id == place_id]
-    if place_obj == []:
+@app_views.route("/places/<place_id>", methods=["PUT"])
+def update_place(place_id):
+    place = storage.get(Place, place_id)
+    if place is None:
         abort(404)
-    if not request.get_json():
-        abort(400, 'Not a JSON')
-    if 'name' in request.get_json():
-        place_obj[0]['name'] = request.json['name']
-    if 'description' in request.get_json():
-        place_obj[0]['description'] = request.json['description']
-    if 'number_rooms' in request.get_json():
-        place_obj[0]['number_rooms'] = request.json['number_rooms']
-    if 'number_bathrooms' in request.get_json():
-        place_obj[0]['number_bathrooms'] = request.json['number_bathrooms']
-    if 'max_guest' in request.get_json():
-        place_obj[0]['max_guest'] = request.json['max_guest']
-    if 'price_by_night' in request.get_json():
-        place_obj[0]['price_by_night'] = request.json['price_by_night']
-    if 'latitude' in request.get_json():
-        place_obj[0]['latitude'] = request.json['latitude']
-    if 'longitude' in request.get_json():
-        place_obj[0]['longitude'] = request.json['longitude']
-    for obj in all_places:
-        if obj.id == place_id:
-            if 'name' in request.get_json():
-                obj.name = request.json['name']
-            if 'description' in request.get_json():
-                obj.description = request.json['description']
-            if 'number_rooms' in request.get_json():
-                obj.number_rooms = request.json['number_rooms']
-            if 'number_bathrooms' in request.get_json():
-                obj.number_bathrooms = request.json['number_bathrooms']
-            if 'max_guest' in request.get_json():
-                obj.max_guest = request.json['max_guest']
-            if 'price_by_night' in request.get_json():
-                obj.price_by_night = request.json['price_by_night']
-            if 'latitude' in request.get_json():
-                obj.latitude = request.json['latitude']
-            if 'longitude' in request.get_json():
-                obj.longitude = request.json['longitude']
+    else:
+        request_http = request.get_json()
+        if request_http is None:
+            abort(400, 'Not a JSON')
+
+    for key, value in request_http.items():
+        if key not in ['id', 'user_id', 'city_id', 'created_at', 'updated_at']:
+            setattr(place, key, value)
+
     storage.save()
-    return jsonify(place_obj[0]), 200
+
+    return jsonify(place.to_dict()), 200

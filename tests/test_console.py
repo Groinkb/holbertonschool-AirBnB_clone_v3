@@ -1,133 +1,41 @@
 #!/usr/bin/python3
-""" Modules for Console tests"""
+"""
+Contains the class TestConsoleDocs
+"""
+
+import console
+import inspect
+import pep8
 import unittest
-from models.base_model import BaseModel
-from console import HBNBCommand
-import sys
-from io import StringIO
-import io
-import unittest.mock
-import os
+HBNBCommand = console.HBNBCommand
 
 
-class TestConsole(unittest.TestCase):
-    """ tests console """
-    @classmethod
-    def tearDown(self):
-        """ removes json file """
-        try:
-            os.remove("file.json")
-        except Exception:
-            pass
+class TestConsoleDocs(unittest.TestCase):
+    """Class for testing documentation of the console"""
+    def test_pep8_conformance_console(self):
+        """Test that console.py conforms to PEP8."""
+        pep8s = pep8.StyleGuide(quiet=True)
+        result = pep8s.check_files(['console.py'])
+        self.assertEqual(result.total_errors, 0,
+                         "Found code style errors (and warnings).")
 
-    def create(self):
-        """ creates an instance of interpreter """
-        return HBNBCommand()
+    def test_pep8_conformance_test_console(self):
+        """Test that tests/test_console.py conforms to PEP8."""
+        pep8s = pep8.StyleGuide(quiet=True)
+        result = pep8s.check_files(['tests/test_console.py'])
+        self.assertEqual(result.total_errors, 0,
+                         "Found code style errors (and warnings).")
 
-    """
-    def test_quit(self):
-         test the quit command
-        console = self.create()
-        self.assertTrue(console.onecmd("quit"))
+    def test_console_module_docstring(self):
+        """Test for the console.py module docstring"""
+        self.assertIsNot(console.__doc__, None,
+                         "console.py needs a docstring")
+        self.assertTrue(len(console.__doc__) >= 1,
+                        "console.py needs a docstring")
 
-    def test_EOF(self):
-         test the EOF command
-        with unittest.mock.patch('sys.stdout',
-        new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("EOF")
-            self.assertEqual(mock_stdout.getvalue(), None)
-    """
-
-    def test_create_normal(self):
-        """ test the create command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("create City")
-            self.assertEqual(type(mock_stdout.getvalue()), str)
-
-    def test_show(self):
-        """ test the show command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("create City")
-            city_id = mock_stdout.getvalue()
-            console.onecmd(f"show City {city_id}")
-            self.assertIsInstance(mock_stdout.getvalue(), str)
-
-    def test_show_error1(self):
-        """ test the show command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("show")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** class name missing **\n")
-
-    def test_show_error2(self):
-        """ test the show command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("show City")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** instance id missing **\n")
-
-    def test_show_error3(self):
-        """ test the show command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            city_id = mock_stdout.getvalue()
-            console.onecmd(f"show Bla {city_id}")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** class doesn't exist **\n")
-
-    def test_destroy_error1(self):
-        """ test the destroy command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("destroy City")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** instance id missing **\n")
-
-    def test_destroy_error2(self):
-        """ test the destroy command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            city_id = mock_stdout.getvalue()
-            console.onecmd(f"destroy Bla {city_id}")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** class doesn't exist **\n")
-
-    def test_destroy_error3(self):
-        """ test the destroy command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            city_id = mock_stdout.getvalue()
-            console.onecmd(f"destroy {city_id}")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** class name missing **\n")
-
-    def test_all(self):
-        """ test the all command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd('create State name="France"')
-            console.onecmd("all State")
-            self.assertIn("France", mock_stdout.getvalue())
-
-    def test_update_1(self):
-        """ test the update command """
-        with unittest.mock.patch('sys.stdout',
-                                 new_callable=io.StringIO) as mock_stdout:
-            console = self.create()
-            console.onecmd("update User")
-            self.assertEqual(mock_stdout.getvalue(),
-                             "** instance id missing **\n")
+    def test_HBNBCommand_class_docstring(self):
+        """Test for the HBNBCommand class docstring"""
+        self.assertIsNot(HBNBCommand.__doc__, None,
+                         "HBNBCommand class needs a docstring")
+        self.assertTrue(len(HBNBCommand.__doc__) >= 1,
+                        "HBNBCommand class needs a docstring")

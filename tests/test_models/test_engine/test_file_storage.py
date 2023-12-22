@@ -1,170 +1,215 @@
 #!/usr/bin/python3
-""" Module for testing file storage"""
-import unittest
+"""
+Contains the TestFileStorageDocs classes
+"""
+
+from datetime import datetime
+import inspect
+import models
+from models.engine import file_storage
+from models.amenity import Amenity
 from models.base_model import BaseModel
-from models import storage
-from models.user import User  # Add import for User class
-from models.place import Place  # Add import for Place class
+from models.city import City
+from models.place import Place
+from models.review import Review
+from models.state import State
+from models.user import User
+import json
 import os
+import pep8
+import unittest
+FileStorage = file_storage.FileStorage
+classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
+           "Place": Place, "Review": Review, "State": State, "User": User}
 
 
-class TestFileStorage(unittest.TestCase):  # Rename class for PEP8 compliance
-    """ Class to test the file storage method """
-    
-    if os.getenv("HBNB_TYPE_STORAGE") != "db":
-        def setUp(self):
-            """ Set up test environment """
-            del_list = []
-            for key in storage._FileStorage__objects.keys():
-                del_list.append(key)
-            for key in del_list:
-                del storage._FileStorage__objects[key]
+class TestFileStorageDocs(unittest.TestCase):
+    """Tests to check the documentation and style of FileStorage class"""
+    @classmethod
+    def setUpClass(cls):
+        """Set up for the doc tests"""
+        cls.fs_f = inspect.getmembers(FileStorage, inspect.isfunction)
 
-        def tearDown(self):
-            """ Remove storage file at the end of tests """
-            try:
-                os.remove('file.json')
-            except Exception:
-                pass
+    def test_pep8_conformance_file_storage(self):
+        """Test that models/engine/file_storage.py conforms to PEP8."""
+        pep8s = pep8.StyleGuide(quiet=True)
+        result = pep8s.check_files(['models/engine/file_storage.py'])
+        self.assertEqual(result.total_errors, 0,
+                         "Found code style errors (and warnings).")
 
-        def test_obj_list_empty(self):
-            """ __objects is initially empty """
-            self.assertEqual(len(storage.all()), 0)
+    def test_pep8_conformance_test_file_storage(self):
+        """Test tests/test_models/test_file_storage.py conforms to PEP8."""
+        pep8s = pep8.StyleGuide(quiet=True)
+        result = pep8s.check_files(['tests/test_models/test_engine/\
+test_file_storage.py'])
+        self.assertEqual(result.total_errors, 0,
+                         "Found code style errors (and warnings).")
 
-        def test_new(self):
-            """ New object is correctly added to __objects """
-            new = BaseModel()
-            for obj in storage.all().values():
-                temp = obj
-            self.assertTrue(temp is obj)
+    def test_file_storage_module_docstring(self):
+        """Test for the file_storage.py module docstring"""
+        self.assertIsNot(file_storage.__doc__, None,
+                         "file_storage.py needs a docstring")
+        self.assertTrue(len(file_storage.__doc__) >= 1,
+                        "file_storage.py needs a docstring")
 
-        def test_all(self):
-            """ __objects is properly returned """
-            new = BaseModel()
-            temp = storage.all()
-            self.assertIsInstance(temp, dict)
+    def test_file_storage_class_docstring(self):
+        """Test for the FileStorage class docstring"""
+        self.assertIsNot(FileStorage.__doc__, None,
+                         "FileStorage class needs a docstring")
+        self.assertTrue(len(FileStorage.__doc__) >= 1,
+                        "FileStorage class needs a docstring")
 
-        def test_base_model_instantiation(self):
-            """ File is not created on BaseModel save """
-            new = BaseModel()
-            self.assertFalse(os.path.exists('file.json'))
+    def test_fs_func_docstrings(self):
+        """Test for the presence of docstrings in FileStorage methods"""
+        for func in self.fs_f:
+            self.assertIsNot(func[1].__doc__, None,
+                             "{:s} method needs a docstring".format(func[0]))
+            self.assertTrue(len(func[1].__doc__) >= 1,
+                            "{:s} method needs a docstring".format(func[0]))
 
-        def test_empty(self):
-            """ Data is saved to the file """
-            new = BaseModel()
-            thing = new.to_dict()
-            new.save()
-            new2 = BaseModel(**thing)
-            self.assertNotEqual(os.path.getsize('file.json'), 0)
 
-        def test_save(self):
-            """ FileStorage save method """
-            new = BaseModel()
-            storage.save()
-            self.assertTrue(os.path.exists('file.json'))
+class TestFileStorage(unittest.TestCase):
+    """Test the FileStorage class"""
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_all_returns_dict(self):
+        """Test that all returns the FileStorage.__objects attr"""
+        storage = FileStorage()
+        new_dict = storage.all()
+        self.assertEqual(type(new_dict), dict)
+        self.assertIs(new_dict, storage._FileStorage__objects)
 
-        def test_reload(self):
-            """ Storage file is successfully loaded to __objects """
-            new = BaseModel()
-            storage.save()
-            storage.reload()
-            for obj in storage.all().values():
-                loaded = obj
-            self.assertEqual(new.to_dict()['id'], loaded.to_dict()['id'])
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_new(self):
+        """test that new adds an object to the FileStorage.__objects attr"""
+        storage = FileStorage()
+        save = FileStorage._FileStorage__objects
+        FileStorage._FileStorage__objects = {}
+        test_dict = {}
+        for key, value in classes.items():
+            with self.subTest(key=key, value=value):
+                instance = value()
+                instance_key = instance.__class__.__name__ + "." + instance.id
+                storage.new(instance)
+                test_dict[instance_key] = instance
+                self.assertEqual(test_dict, storage._FileStorage__objects)
+        FileStorage._FileStorage__objects = save
 
-        def test_reload_empty(self):
-            """ Load from an empty file """
-            with open('file.json', 'w') as f:
-                pass
-            with self.assertRaises(ValueError):
-                storage.reload()
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_save(self):
+        """Test that save properly saves objects to file.json"""
+        storage = FileStorage()
+        new_dict = {}
+        for key, value in classes.items():
+            instance = value()
+            instance_key = instance.__class__.__name__ + "." + instance.id
+            new_dict[instance_key] = instance
+        save = FileStorage._FileStorage__objects
+        FileStorage._FileStorage__objects = new_dict
+        storage.save()
+        FileStorage._FileStorage__objects = save
+        for key, value in new_dict.items():
+            new_dict[key] = value.to_dict()
+        string = json.dumps(new_dict)
+        with open("file.json", "r") as f:
+            js = f.read()
+        self.assertEqual(json.loads(string), json.loads(js))
+    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
+    def test_count(self):
+        """
+        La fonction test_count est un test pour vérifier si la fonction count fonctionne
+        correctement. Il vérifie si le nombre d'objets créés est égal au nombre
+        d'objets comptés. La fonction test_count vérifie également que toutes les instances sont
+        compté et pas seulement un type d'instance.
 
-        def test_reload_from_nonexistent(self):
-            """ Nothing happens if the file does not exist """
-            self.assertEqual(storage.reload(), None)
+        :param self : référence l'instance de classe
+        :return : le nombre de toutes les instances dans la base de données
+    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
+    def test_count(self):
+        """
+        La fonction test_count est un test pour
+        vérifier si la fonction count fonctionne
+        correctement. Il vérifie si le nombre
+        d'objets créés est égal au nombre
+        d'objets comptés. La fonction test_count
+        vérifie également que toutes les instances sont
+        compté et pas seulement un type d'instance.
+        :param self : référence l'instance de classe
+        :return : le nombre de toutes
+        les instances dans la base de données
+        :doc-author: Trelent
+        """
+        currentStateInit = models.storage.count(State)
+        stateList = ["Suisse", "France", "Espagne", "Portugale"]
+        for stateName in stateList:
+            newState = State(name=stateName)
+            newState.save()
+        countStateResult = models.storage.count(State)
+        self.assertEqual(countStateResult - currentStateInit,
+                         len(stateList))
+        allInstance = models.storage.count()
+        self.assertEqual(allInstance - currentStateInit,
+                         len(stateList))
+        allemagneState = State(name="allemagne")
+        allemagneState.save()
+        countStateResult += 1
+        currentCityNumber = models.storage.count(City)
+        allemagneCity = ["Studgard", "Berlin"]
+        for cityName in allemagneCity:
+            newCity = City(name=cityName, state_id=allemagneState.id)
+            newCity.save()
+        countCity = models.storage.count(City)
+        self.assertEqual(countCity - currentCityNumber,
+                         len(allemagneCity))
+        allInstance = models.storage.count()
+        stateNumber = countStateResult - currentStateInit
+        cityNumber = countCity - currentCityNumber
+        allInstanceNumber = stateNumber + cityNumber
+        self.assertEqual(allInstanceNumber, allInstance)
 
-        def test_base_model_save(self):
-            """ BaseModel save method calls storage save """
-            new = BaseModel()
-            new.save()
-            self.assertTrue(os.path.exists('file.json'))
 
-        def test_type_path(self):
-            """ Confirm __file_path is a string """
-            self.assertEqual(type(storage._FileStorage__file_path), str)
-
-        def test_type_objects(self):
-            """ Confirm __objects is a dict """
-            self.assertEqual(type(storage.all()), dict)
-
-        def test_key_format(self):
-            """ Key is properly formatted """
-            new = BaseModel()
-            _id = new.to_dict()['id']
-            for key in storage.all().keys():
-                temp = key
-            self.assertEqual(temp, 'BaseModel' + '.' + _id)
-
-        def test_storage_var_created(self):
-            """ FileStorage object storage created """
-            from models.engine.file_storage import FileStorage
-            print(type(storage))
-            self.assertEqual(type(storage), FileStorage)
-
-        def test_all_with_cls_filter(self):
-            """ __objects is filtered by class """
-            new1 = BaseModel()
-            new2 = User()
-            new3 = Place()
-
-            # Filter by BaseModel
-            result = storage.all(BaseModel)
-            self.assertIn(new1, result.values())
-            self.assertNotIn(new2, result.values())
-            self.assertNotIn(new3, result.values())
-
-            # Filter by User
-            result = storage.all(User)
-            self.assertNotIn(new1, result.values())
-            self.assertIn(new2, result.values())
-            self.assertNotIn(new3, result.values())
-
-            # Filter by Place
-            result = storage.all(Place)
-            self.assertNotIn(new1, result.values())
-            self.assertNotIn(new2, result.values())
-            self.assertIn(new3, result.values())
-
-        def test_new_with_cls_filter(self):
-            """ new adds object to __objects only if it matches the class filter """
-            new1 = BaseModel()
-            new2 = User()
-            new3 = Place()
-
-            # Add BaseModel object
-            storage.new(new1)
-            self.assertIn(new1, storage.all().values())
-
-            # Add User object
-            storage.new(new2)
-            self.assertIn(new2, storage.all(User).values())
-            self.assertNotIn(new2, storage.all().values())
-
-            # Add Place object
-            storage.new(new3)
-            self.assertIn(new3, storage.all(Place).values())
-            self.assertNotIn(new3, storage.all().values())
-
-        def test_get_count(self):
-            """ Test .get() and .count() methods """
-            from models import storage
-            from models.state import State
-
-            print("All objects: {}".format(storage.count()))
-            print("State objects: {}".format(storage.count(State)))
-
-            first_state_id = list(storage.all(State).values())[0].id
-            print("First state: {}".format(storage.get(State, first_state_id)))
-
-if __name__ == "__main__":
-    unittest.main()
+    @unittest.skipIf(models.storage_t == 'db', "not testing db storage")
+    def test_get(self):
+        """
+        La fonction test_get teste la méthode get
+        de la classe de stockage.
+        Il crée de nouveaux objets State, City, User,
+        Place et Review et les enregistre dans
+        le moteur de stockage. Il récupère ensuite
+        chaque objet de la base de données en utilisant leur
+        identifiants uniques (id) et les compare à
+        leur objet correspondant qui a été
+        enregistré en mémoire. La fonction test_get
+        teste également le moment où des arguments
+        non valides sont passés dans
+        la méthode de stockage get.
+        :param self : référence l'instance de classe
+        :return: None pour montrer que l'objet
+        n'est pas dans le
+        :doc-author: Trelent
+        """
+        newState = State(name="Alemaggne")
+        newCity = City(name="Berlin", state_id=newState.id)
+        newUser = User(email="namme@email.com",
+                       password="password")
+        newPlace = Place(name="Berlin Wall",
+                         city_id=newCity.id,
+                         state_id=newState.id,
+                         user_id=newUser.id)
+        newReview = Review(text="This is a review",
+                           place_id=newPlace.id,
+                           user_id=newUser.id)
+        newAmenity = Amenity(name="Rosenta")
+        newState.save()
+        newCity.save()
+        newUser.save()
+        newPlace.save()
+        newReview.save()
+        newAmenity.save()
+        self.assertEqual(None, models.storage.get("azerty", "qwerty"))
+        self.assertEqual(newCity, models.storage.get(City, newCity.id))
+        self.assertEqual(newUser, models.storage.get(User, newUser.id))
+        self.assertEqual(newPlace, models.storage.get(Place, newPlace.id))
+        self.assertEqual(newReview, models.storage.get(Review, newReview.id))
+        self.assertEqual(newAmenity,
+                         models.storage.get(Amenity, newAmenity.id))
+        self.assertEqual(None, models.storage.get(State, "Not a good ID"))

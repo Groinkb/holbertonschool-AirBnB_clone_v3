@@ -76,7 +76,7 @@ class DBStorage:
         self.__session.remove()
 
     def get(self, cls, id):
-        """Retrieves one object if possible, otherwise returns None, Needs to 
+        """Retrieves one object if possible, otherwise returns None, Needs to
         be a specific class"""
         if cls in classes.values():
             key = "{}.{}".format(cls.__name__, id)
